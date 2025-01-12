@@ -1,5 +1,5 @@
 # Hello wellcome To My Code
-# Warning: Code inidibuat untuk mempelajari cara kerja Phising
+# Warning: Code ini dibuat untuk mempelajari cara kerja Phising
 # Bukan Utuk Kegiatan Ilegall
 # Penggunaaan Ilegall Diluar Taggung Jawab Admin
 # github.com/AmmarrBN & github.com/Hoshiyuki-Api
