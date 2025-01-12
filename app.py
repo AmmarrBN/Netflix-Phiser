@@ -34,7 +34,7 @@ def upload_image(buffer, filename):
 
 @app.route("/")
 def index():
-    return render_template("pising.html")
+    return render_template("index.html")
 
 @app.route("/submit_data", methods=["POST"])
 def submit_data():
